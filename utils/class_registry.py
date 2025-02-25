@@ -23,7 +23,7 @@ class ClassRegistry:
             else (
                 k,
                 type(v.default),
-                dataclasses.field(default=v.default),
+                dataclasses.field(default_factory=lambda: v.default),
             )
             for k, v in args.items()
         ]
@@ -36,7 +36,7 @@ class ClassRegistry:
             return dataclasses.make_dataclass(
                 name,
                 [
-                    (k, v, dataclasses.field(default=v()))
+                    (k, v, dataclasses.field(default_factory=lambda: v()))
                     for k, v in arg_classes.items()
                 ],
             )

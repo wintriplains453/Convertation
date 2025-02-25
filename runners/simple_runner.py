@@ -106,7 +106,7 @@ def unalign(edited_image, unalign_dict, orig_img_pth, unaligned_path):
 
     subprocess.run(
             ["fpie", "-s", orig_img_pth, "-m", "mask.jpg", "-t", "edited.png", "-o", unaligned_path, "-n",
-             "5000", "-b", "taichi-gpu", "-g", "src"],
+             "5000", "-b", "taichi-cpu", "-g", "src"],
             check=True
         )
 

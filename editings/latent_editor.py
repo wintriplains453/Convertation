@@ -53,7 +53,7 @@ class LatentEditor:
                 "rotation": "editings/interfacegan_directions/rotation.pt",
             }
             self.interfacegan_tensors = {
-                name: torch.load(path).cuda()
+                name: torch.load(path)
                 for name, path in self.interfacegan_directions.items()
             }
 
@@ -147,10 +147,10 @@ class LatentEditor:
 
 
     def load_styleclip_global(self):
-        delta_i_c = torch.from_numpy(np.load("editings/styleclip/global_mapper_data/delta_i_c.npy")).float().cuda()
+        delta_i_c = torch.from_numpy(np.load("editings/styleclip/global_mapper_data/delta_i_c.npy")).float()
         with open("editings/styleclip/global_mapper_data/S_mean_std", "rb") as channels_statistics:
             _, s_std = pickle.load(channels_statistics)
-            s_std = [torch.from_numpy(s_i).float().cuda() for s_i in s_std]
+            s_std = [torch.from_numpy(s_i).float() for s_i in s_std]
         with open("editings/styleclip/global_mapper_data/templates.txt", "r") as templates:
             text_prompt_templates = templates.readlines()
         global_direction_calculator = StyleCLIPGlobalDirection(delta_i_c, s_std, text_prompt_templates)
@@ -179,7 +179,7 @@ class LatentEditor:
         opts = argparse.Namespace(**opts)
         style_clip_net = StyleCLIPMapper(opts)
         style_clip_net.eval()
-        style_clip_net.cuda()
+        # style_clip_net.cuda()
         direction = style_clip_net.mapper(start_w)
         for factor in factors:
             edited_latent = start_w + factor * direction

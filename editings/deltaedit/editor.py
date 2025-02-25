@@ -25,12 +25,12 @@ def improved_ds(ds, select):
 
 class DeltaEditor:
     def __init__(self):
-        device = "cuda"
+        device = "cpu"
         self.fs3 = np.load("pretrained_models/fs3.npy")
         np.set_printoptions(suppress=True)
 
         self.net = DeltaMapper()
-        net_ckpt = torch.load("pretrained_models/delta_mapper.pt")
+        net_ckpt = torch.load("pretrained_models/delta_mapper.pt",  map_location=torch.device(device))
         self.net.load_state_dict(net_ckpt)
         self.net = self.net.to(device).eval()
 

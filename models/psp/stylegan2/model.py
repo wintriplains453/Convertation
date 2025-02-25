@@ -3,7 +3,7 @@ import random
 import torch
 from torch import nn
 from torch.nn import functional as F
-from models.psp.stylegan2.op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d
+from editings.styleclip.models.stylegan2.op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d
 from PIL import Image
 
 

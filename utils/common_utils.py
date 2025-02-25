@@ -1,4 +1,4 @@
-import tensorflow as tf
+# import tensorflow as tf
 import random
 from torch.nn import functional as F
 from PIL import Image
@@ -43,6 +43,6 @@ def get_keys(d, name, key="state_dict"):
     return d_filt
 
 
-def setup_seed(seed):
-    random.seed(seed)
-    tf.random.set_seed(seed)
+# def setup_seed(seed):
+#     random.seed(seed)
+#     tf.random.set_seed(seed)

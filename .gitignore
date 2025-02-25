@@ -1,3 +1,10 @@
 pretrained_models/
 
 Miniconda3-latest-Linux-x86_64.sh
+
+__pycache__/
+*.py[cod]
+.venv
+.python-version
+.ipynb_checkpoints
+.idea/

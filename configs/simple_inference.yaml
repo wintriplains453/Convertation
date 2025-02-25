@@ -3,7 +3,7 @@ exp:
 
 model:
   method: fse_full
-  device: "0"
+  device: "cpu"
   batch_size: 1
   workers: 1
 

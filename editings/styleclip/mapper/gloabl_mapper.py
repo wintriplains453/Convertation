@@ -32,7 +32,7 @@ class StyleCLIPGlobalDirection:
         self.delta_i_c = delta_i_c
         self.s_std = s_std
         self.text_prompts_templates = text_prompts_templates
-        self.clip_model, _ = clip.load("ViT-B/32", device="cuda")
+        self.clip_model, _ = clip.load("ViT-B/32", device="cpu")
 
     def get_delta_s(self, neutral_text, target_text, beta):
         delta_i = self.get_delta_i([target_text, neutral_text]).float()

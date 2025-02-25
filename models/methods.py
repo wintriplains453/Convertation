@@ -25,7 +25,7 @@ methods_registry = ClassRegistry()
 @methods_registry.add_to_registry("fse_full", stop_args=("self", "checkpoint_path"))
 class FSEFull(nn.Module):
     def __init__(self,
-                 device="cuda:0",
+                 device="cpu",
                  paths=DefaultPaths,
                  checkpoint_path=None,
                  inverter_pth=None):
@@ -151,7 +151,7 @@ class FSEFull(nn.Module):
 @methods_registry.add_to_registry("fse_inverter", stop_args=("self", "checkpoint_path"))
 class FSEInverter(nn.Module):
     def __init__(self,
-                 device="cuda:0",
+                 device="cpu",
                  paths=DefaultPaths,
                  checkpoint_path=None):
         super(FSEInverter, self).__init__()
