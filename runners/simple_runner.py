@@ -1,16 +1,15 @@
-import os
+import subprocess
+from pathlib import Path
+
 import cv2
 import PIL
+from PIL import Image
 import torch
-import subprocess
 import numpy as np
+from omegaconf import OmegaConf
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 
-from PIL import Image
-from pathlib import Path
-
-from omegaconf import OmegaConf
 from utils.common_utils import tensor2im, tensor2im_no_tfm, MaskerCantFindFaceError
 from datasets.transforms import transforms_registry
 from runners.inference_runners import FSEInferenceRunner
@@ -137,7 +136,6 @@ class SimpleRunner:
         use_mask: bool = False,
         mask_trashold=0.995,
         mask_path: str = None,
-        save_e4e=False,
         save_inversion=False
     ):
 
@@ -177,24 +175,12 @@ class SimpleRunner:
             editing_name=editing_name, 
             editing_degrees=[edited_power],
             mask=mask,
-            return_e4e=save_e4e
         )
 
         if save_inversion:
             save_inv_pth = save_pth.parents[0] / (save_pth.stem + "_inversion.jpg")
             inv_image = tensor2im(inv_images[0].cpu())
             inv_image.save(save_inv_pth)
-
-        if save_e4e:
-            edited_image, e4e_inv, e4e_edit = edited_image
-
-            save_e4e_inv_pth = save_pth.parents[0] / (save_pth.stem + "_e4e_inversion.jpg")
-            e4e_inv_image = tensor2im(e4e_inv[0].cpu())
-            e4e_inv_image.save(save_e4e_inv_pth)
-
-            save_e4e_edit_pth = save_pth.parents[0] / (save_pth.stem + "_e4e_edit.jpg")
-            e4e_edit_image = tensor2im(e4e_edit[0].cpu())
-            e4e_edit_image.save(save_e4e_edit_pth)
 
         # print(edited_image[0][0].cpu())
         edited_image = tensor2im(edited_image[0][0].cpu())
@@ -219,5 +205,3 @@ class SimpleRunner:
             edit_type_directions = getattr(self.inference_runner.latent_editor, edit_type, None).keys()
             for direction in edit_type_directions:
                 print("\t" + direction)
-        print(GLOBAL_DIRECTIONS_DESC)
-

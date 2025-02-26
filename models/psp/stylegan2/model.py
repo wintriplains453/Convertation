@@ -4,7 +4,6 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from editings.styleclip.models.stylegan2.op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d
-from PIL import Image
 
 
 class PixelNorm(nn.Module):
@@ -475,60 +474,22 @@ class Generator(nn.Module):
     def forward(
         self,
         styles,
-        return_latents=False,
         return_features=False,
-        inject_index=None,
-        truncation=1,
-        truncation_latent=None,
-        input_is_latent=False,
-        noise=None,
-        randomize_noise=True,
         is_stylespace=False,
         new_features=None,
         feature_scale=1.0,
         early_stop=None,
     ):
 
-        print(styles[0].size())
+        print("Generator:", styles[0].size())
         if is_stylespace:
             styles, to_rgb_stylespace = styles
-        if not input_is_latent and not is_stylespace:
-            styles = [self.style(s) for s in styles]
 
-        if noise is None:
-            if randomize_noise:
-                noise = [None] * self.num_layers
-            else:
-                noise = [
-                    getattr(self.noises, f"noise_{i}") for i in range(self.num_layers)
-                ]
+        noise = [
+            getattr(self.noises, f"noise_{i}") for i in range(self.num_layers)
+        ]
 
-        if truncation < 1:
-            style_t = []
-
-            for style in styles:
-                style_t.append(
-                    truncation_latent + truncation * (style - truncation_latent)
-                )
-
-            styles = style_t
-
-        if len(styles) < 2:
-            inject_index = self.n_latent
-
-            if styles[0].ndim < 3:
-                latent = styles[0].unsqueeze(1).repeat(1, inject_index, 1)
-            else:
-                latent = styles[0]
-
-        else:
-            if inject_index is None:
-                inject_index = random.randint(1, self.n_latent - 1)
-
-            latent = styles[0].unsqueeze(1).repeat(1, inject_index, 1)
-            latent2 = styles[1].unsqueeze(1).repeat(1, self.n_latent - inject_index, 1)
-
-            latent = torch.cat([latent, latent2], 1)
+        latent = styles[0]
 
         def insert_feature(x, layer_idx):
             if new_features is not None and new_features[layer_idx] is not None:
@@ -566,9 +527,7 @@ class Generator(nn.Module):
 
         image = skip
 
-        if return_latents:
-            return image, latent
-        elif return_features:
+        if return_features:
             return image, outs
         else:
             print(image.shape)
@@ -641,66 +600,5 @@ class ResBlock(nn.Module):
 
         skip = self.skip(input)
         out = (out + skip) / math.sqrt(2)
-
-        return out
-
-
-class Discriminator(nn.Module):
-    def __init__(self, size, channel_multiplier=2, blur_kernel=[1, 3, 3, 1]):
-        super().__init__()
-
-        channels = {
-            4: 512,
-            8: 512,
-            16: 512,
-            32: 512,
-            64: 256 * channel_multiplier,
-            128: 128 * channel_multiplier,
-            256: 64 * channel_multiplier,
-            512: 32 * channel_multiplier,
-            1024: 16 * channel_multiplier,
-        }
-
-        convs = [ConvLayer(3, channels[size], 1)]
-
-        log_size = int(math.log(size, 2))
-
-        in_channel = channels[size]
-
-        for i in range(log_size, 2, -1):
-            out_channel = channels[2 ** (i - 1)]
-
-            convs.append(ResBlock(in_channel, out_channel, blur_kernel))
-
-            in_channel = out_channel
-
-        self.convs = nn.Sequential(*convs)
-
-        self.stddev_group = 4
-        self.stddev_feat = 1
-
-        self.final_conv = ConvLayer(in_channel + 1, channels[4], 3)
-        self.final_linear = nn.Sequential(
-            EqualLinear(channels[4] * 4 * 4, channels[4], activation="fused_lrelu"),
-            EqualLinear(channels[4], 1),
-        )
-
-    def forward(self, input):
-        out = self.convs(input)
-
-        batch, channel, height, width = out.shape
-        group = min(batch, self.stddev_group)
-        stddev = out.view(
-            group, -1, self.stddev_feat, channel // self.stddev_feat, height, width
-        )
-        stddev = torch.sqrt(stddev.var(0, unbiased=False) + 1e-8)
-        stddev = stddev.mean([2, 3, 4], keepdims=True).squeeze(2)
-        stddev = stddev.repeat(group, 1, height, width)
-        out = torch.cat([out, stddev], 1)
-
-        out = self.final_conv(out)
-
-        out = out.view(batch, -1)
-        out = self.final_linear(out)
 
         return out
