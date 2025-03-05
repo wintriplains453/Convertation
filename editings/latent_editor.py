@@ -8,7 +8,6 @@ import numpy as np
 from editings import ganspace
 from editings.styleclip.mapper.styleclip_mapper import StyleCLIPMapper
 from editings.styleclip.mapper.gloabl_mapper import StyleCLIPGlobalDirection
-from editings.deltaedit.editor import DeltaEditor
 
 
 STYLESPACE_IDX = [
@@ -44,106 +43,77 @@ STYLESPACE_IDX = [
 class LatentEditor:
     def __init__(self, domain="human_faces"):
 
-        self.domain = domain
+        self.interfacegan_directions = {
+            "age": "editings/interfacegan_directions/age.pt",
+            "smile": "editings/interfacegan_directions/smile.pt",
+            "rotation": "editings/interfacegan_directions/rotation.pt",
+        }
+        self.interfacegan_tensors = {
+            name: torch.load(path)
+            for name, path in self.interfacegan_directions.items()
+        }
 
-        if self.domain == "human_faces":
-            self.interfacegan_directions = {
-                "age": "editings/interfacegan_directions/age.pt",
-                "smile": "editings/interfacegan_directions/smile.pt",
-                "rotation": "editings/interfacegan_directions/rotation.pt",
-            }
-            self.interfacegan_tensors = {
-                name: torch.load(path)
-                for name, path in self.interfacegan_directions.items()
-            }
+        self.ganspace_pca = torch.load("editings/ganspace_pca/ffhq_pca.pt")
+        self.ganspace_directions = {
+            "eye_openness": (54, 7, 8, 5),
+            "trimmed_beard": (58, 7, 9, 7),
+            "lipstick": (34, 10, 11, 20),
+            "face_roundness": (37, 0, 5, 20.0),
+            "nose_length": (51, 4, 5, -30.0),
+            "eyebrow_thickness": (37, 8, 9, 20.0),
+            "head_angle_up": (11, 1, 4, -10.5),
+            "displeased": (36, 4, 7, 10.0),
+        }
 
-            self.ganspace_pca = torch.load("editings/ganspace_pca/ffhq_pca.pt")
-            self.ganspace_directions = {
-                "eye_openness": (54, 7, 8, 5),
-                "trimmed_beard": (58, 7, 9, 7),
-                "lipstick": (34, 10, 11, 20),
-                "face_roundness": (37, 0, 5, 20.0),
-                "nose_length": (51, 4, 5, -30.0),
-                "eyebrow_thickness": (37, 8, 9, 20.0),
-                "head_angle_up": (11, 1, 4, -10.5),
-                "displeased": (36, 4, 7, 10.0),
-            }
+        self.styleclip_directions = {
+            "afro": [False, False, True],
+            "angry": [False, False, True],
+            "beyonce": [False, False, False],
+            "bobcut": [False, False, True],
+            "bowlcut": [False, False, True],
+            "curly_hair": [False, False, True],
+            "hilary_clinton": [False, False, False],
+            "depp": [False, False, False],
+            "mohawk": [False, False, True],
+            "purple_hair": [False, False, False],
+            "surprised": [False, False, True],
+            "taylor_swift": [False, False, False],
+            "trump": [False, False, False],
+            "zuckerberg": [False, False, False],
+        }
+        self.styleclip_global_editor = self.load_styleclip_global()
 
-            self.styleclip_directions = {
-                "afro": [False, False, True],
-                "angry": [False, False, True],
-                "beyonce": [False, False, False],
-                "bobcut": [False, False, True],
-                "bowlcut": [False, False, True],
-                "curly_hair": [False, False, True],
-                "hilary_clinton": [False, False, False],
-                "depp": [False, False, False],
-                "mohawk": [False, False, True],
-                "purple_hair": [False, False, False],
-                "surprised": [False, False, True],
-                "taylor_swift": [False, False, False],
-                "trump": [False, False, False],
-                "zuckerberg": [False, False, False],
-            }
-            self.styleclip_global_editor = self.load_styleclip_global()
+        self.stylespace_directions = {
+            "black hair": [(12, 479)],
+            "blond hair": [(12, 479), (12, 266)],
+            "grey hair": [(11, 286)],
+            "wavy hair": [(6, 500), (8, 128), (5, 92), (6, 394), (6, 323)],
+            "bangs": [
+                (3, 259),
+                (6, 285),
+                (5, 414),
+                (6, 128),
+                (9, 295),
+                (6, 322),
+                (6, 487),
+                (6, 504),
+            ],
+            "receding hairline": [(5, 414), (6, 322), (6, 497), (6, 504)],
+            "smiling": [(6, 501)],
+            "sslipstick": [(15, 45)],
+            "sideburns": [(12, 237)],
+            "goatee": [(9, 421)],
+            "earrings": [(8, 81)],
+            "glasses": [(3, 288), (2, 175), (3, 120), (2, 97)],
+            "wear suit": [(9, 441), (8, 292), (11, 358), (6, 223)],
+            "gender": [(9, 6)],
+        }
 
-            self.stylespace_directions = {
-                "black hair": [(12, 479)],
-                "blond hair": [(12, 479), (12, 266)],
-                "grey hair": [(11, 286)],
-                "wavy hair": [(6, 500), (8, 128), (5, 92), (6, 394), (6, 323)],
-                "bangs": [
-                    (3, 259),
-                    (6, 285),
-                    (5, 414),
-                    (6, 128),
-                    (9, 295),
-                    (6, 322),
-                    (6, 487),
-                    (6, 504),
-                ],
-                "receding hairline": [(5, 414), (6, 322), (6, 497), (6, 504)],
-                "smiling": [(6, 501)],
-                "sslipstick": [(15, 45)],
-                "sideburns": [(12, 237)],
-                "goatee": [(9, 421)],
-                "earrings": [(8, 81)],
-                "glasses": [(3, 288), (2, 175), (3, 120), (2, 97)],
-                "wear suit": [(9, 441), (8, 292), (11, 358), (6, 223)],
-                "gender": [(9, 6)],
-            }
-            
-            self.fs_directions = {
-                "fs_glasses": "editings/bound/Eyeglasses_boundary.npy",
-                "fs_smiling": "editings/bound/Smiling_boundary.npy",
-                "fs_makeup": "editings/bound/Heavy_Makeup_boundary.npy"
-             }
-
-            self.deltaedit_editor = DeltaEditor()
-
-        elif self.domain == "car":
-
-            self.stylespace_directions = {
-                "front": [(8, 411)],
-                "headlights": [(8, 441), (9, 355)],
-                "grill": [(9, 191)],
-                "trees": [(9, 108)],
-                "grass_ss": [(12, 107)],
-                "sky": [(12, 76)],
-                "hubcap": [(12, 113), (12, 439)],
-                "car color": [(12, 142), (15, 227)],
-                "logo": [(9, 185)],
-                "wheel angle": [(8, 420)],
-            }
-
-            self.ganspace_pca = torch.load("editings/ganspace_pca/cars_pca.pt")
-            self.ganspace_directions = {
-                "pose_1": (0, 0, 5, 2),
-                "pose_2": (0, 0, 5, -2),
-                "cube": (16, 3, 6, 25),
-                "color": (22, 9, 11, -8),
-                "grass": (41, 9, 11, -18)
-            }
+        self.fs_directions = {
+            "fs_glasses": "editings/bound/Eyeglasses_boundary.npy",
+            "fs_smiling": "editings/bound/Smiling_boundary.npy",
+            "fs_makeup": "editings/bound/Heavy_Makeup_boundary.npy"
+         }
 
 
     def load_styleclip_global(self):
@@ -287,4 +257,3 @@ class LatentEditor:
         edits = [torch.tensor(w_0 + factor * boundary).view(bs, -1, 512).to(device) for factor in factors]
 
         return edits
-
