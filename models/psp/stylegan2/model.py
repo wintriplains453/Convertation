@@ -477,10 +477,7 @@ class Generator(nn.Module):
         return_features=False,
         new_features=None,
         feature_scale=1.0,
-        early_stop=None,
     ):
-
-        print("Generator:", latent.size())
 
         noise = [
             getattr(self.noises, f"noise_{i}") for i in range(self.num_layers)
@@ -491,12 +488,8 @@ class Generator(nn.Module):
                 x = (1 - feature_scale) * x + feature_scale * new_features[layer_idx].type_as(x)
             return x
 
-        outs = []
         out = self.input(latent)
-        outs.append(out)
-
         out = self.conv1(out, latent[:, 0], noise=noise[0], is_stylespace=False)
-        outs.append(out)
 
         skip = self.to_rgb1(out, latent[:, 1], is_stylespace=False)
         
@@ -507,26 +500,18 @@ class Generator(nn.Module):
         ):
             out = insert_feature(out, i)
             out = conv1(out, latent[:, i], noise=noise1, is_stylespace=False)
-            outs.append(out)
 
             out = insert_feature(out, i + 1)
             out = conv2(out, latent[:, i + 1], noise=noise2, is_stylespace=False)
-            outs.append(out)
 
             skip = to_rgb(out, latent[:, i + 2], skip, is_stylespace=False)
             
-            if early_stop is not None and skip.size(-1) == early_stop:
+            if return_features and skip.size(-1) == 64:
                 break
 
             i += 2
 
-        image = skip
-
-        if return_features:
-            return image, outs
-        else:
-            print(image.shape)
-            return image, None
+        return skip, out
 
 
 class ConvLayer(nn.Sequential):

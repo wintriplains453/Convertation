@@ -83,14 +83,11 @@ class FSEFull(nn.Module):
             w_recon, predicted_feat = self.inverter.fs_backbone(x)
             w_recon = w_recon + self.latent_avg
                     
-            _, w_feats = self.decoder(
+            _, w_feat = self.decoder(
                 w_recon,
-                return_features=True,
-                early_stop=64
+                return_features=True
             )
 
-            w_feat = w_feats[9]  # bs x 512 x 64 x 64 
-            
             fused_feat = self.inverter.fuser(torch.cat([predicted_feat, w_feat], dim=1))
             delta = torch.zeros_like(fused_feat)  # inversion case
 
@@ -99,7 +96,6 @@ class FSEFull(nn.Module):
 
         images, _ = self.decoder(
             w_recon,
-            return_features=True,
             new_features=feats,
             feature_scale=min(1.0, 0.0001 * n_iter)
         )

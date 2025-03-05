@@ -145,17 +145,15 @@ class FSEInferenceRunner(BaseInferenceRunner):
 
             e4e_inv, fs_x = self.method.decoder(
                 w_e4e,
-                return_features=True,
-                early_stop=64,
+                return_features=True
             )
 
             e4e_edit, fs_y = self.method.decoder(
                 edited_w_e4e[0],
-                return_features=True,
-                early_stop=64,
+                return_features=True
             )
 
-            delta = fs_x[9] - fs_y[9]
+            delta = fs_x - fs_y
 
             if mask is not None:
                 delta_mask = mask[i][0].unsqueeze(0).repeat(512, 1, 1).unsqueeze(0)
