@@ -128,7 +128,7 @@ class FSEInferenceRunner(BaseInferenceRunner):
                 editing_degrees, 
                 method_res_batch["inputs"][i].unsqueeze(0)
             )
-            
+
             w_e4e = method_res_batch["w_e4e"][i].unsqueeze(0)
             edited_w_e4e = self.get_edited_latent(
                 w_e4e, 
@@ -137,27 +137,20 @@ class FSEInferenceRunner(BaseInferenceRunner):
                 method_res_batch["inputs"][i].unsqueeze(0)
             )
 
-            if edited_latents is None or edited_w_e4e is None:
-                print(f"WARNING, skip editing {editing_name}")
-                continue
-
-            is_stylespace = isinstance(edited_latents, tuple)
-            if not is_stylespace:
-                edited_latents = torch.cat(edited_latents, dim=0).unsqueeze(0)
-                edited_w_e4e = torch.cat(edited_w_e4e, dim=0).unsqueeze(0)
+            edited_latents = torch.cat(edited_latents, dim=0).unsqueeze(0)
+            edited_w_e4e = torch.cat(edited_w_e4e, dim=0).unsqueeze(0)
 
             w_e4e = w_e4e.repeat(len(editing_degrees), 1, 1)  # bs = len(editing_degrees)
             w_latent = latent.unsqueeze(0).repeat(len(editing_degrees), 1, 1)
 
             e4e_inv, fs_x = self.method.decoder(
-                [w_e4e],
+                w_e4e,
                 return_features=True,
                 early_stop=64,
             )
 
             e4e_edit, fs_y = self.method.decoder(
-                edited_w_e4e,
-                is_stylespace=is_stylespace,
+                edited_w_e4e[0],
                 return_features=True,
                 early_stop=64,
             )
@@ -177,10 +170,9 @@ class FSEInferenceRunner(BaseInferenceRunner):
             edit_features = [None] * 9 + [edited_feat] + [None] * (17 - 9)
 
             image_edits, _ = self.method.decoder(
-                edited_latents,
+                edited_latents[0],
                 new_features=edit_features,
-                feature_scale=min(1.0, 0.0001 * n_iter),
-                is_stylespace=is_stylespace,
+                feature_scale=min(1.0, 0.0001 * n_iter)
             )
 
             edited_images.append(image_edits)

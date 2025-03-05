@@ -84,9 +84,8 @@ class FSEFull(nn.Module):
             w_recon = w_recon + self.latent_avg
                     
             _, w_feats = self.decoder(
-                [w_recon],
+                w_recon,
                 return_features=True,
-                is_stylespace=False,
                 early_stop=64
             )
 
@@ -99,11 +98,10 @@ class FSEFull(nn.Module):
         feats = [None] * 9 + [edited_feat] + [None] * (17 - 9)
 
         images, _ = self.decoder(
-            [w_recon],
+            w_recon,
             return_features=True,
             new_features=feats,
-            feature_scale=min(1.0, 0.0001 * n_iter),
-            is_stylespace=False,
+            feature_scale=min(1.0, 0.0001 * n_iter)
         )
 
         if return_latents:

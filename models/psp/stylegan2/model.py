@@ -473,23 +473,18 @@ class Generator(nn.Module):
 
     def forward(
         self,
-        styles,
+        latent,
         return_features=False,
-        is_stylespace=False,
         new_features=None,
         feature_scale=1.0,
         early_stop=None,
     ):
 
-        print("Generator:", styles[0].size())
-        if is_stylespace:
-            styles, to_rgb_stylespace = styles
+        print("Generator:", latent.size())
 
         noise = [
             getattr(self.noises, f"noise_{i}") for i in range(self.num_layers)
         ]
-
-        latent = styles[0]
 
         def insert_feature(x, layer_idx):
             if new_features is not None and new_features[layer_idx] is not None:
@@ -500,10 +495,10 @@ class Generator(nn.Module):
         out = self.input(latent)
         outs.append(out)
 
-        out = self.conv1(out, styles[0].float() if is_stylespace else latent[:, 0], noise=noise[0], is_stylespace=is_stylespace)
+        out = self.conv1(out, latent[:, 0], noise=noise[0], is_stylespace=False)
         outs.append(out)
 
-        skip = self.to_rgb1(out, to_rgb_stylespace[0].float() if is_stylespace else latent[:, 1], is_stylespace=is_stylespace)
+        skip = self.to_rgb1(out, latent[:, 1], is_stylespace=False)
         
 
         i = 1
@@ -511,14 +506,14 @@ class Generator(nn.Module):
             self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):
             out = insert_feature(out, i)
-            out = conv1(out, styles[i].float() if is_stylespace else latent[:, i], noise=noise1, is_stylespace=is_stylespace)
+            out = conv1(out, latent[:, i], noise=noise1, is_stylespace=False)
             outs.append(out)
 
             out = insert_feature(out, i + 1)
-            out = conv2(out, styles[i + 1].float() if is_stylespace else latent[:, i + 1], noise=noise2, is_stylespace=is_stylespace)
+            out = conv2(out, latent[:, i + 1], noise=noise2, is_stylespace=False)
             outs.append(out)
 
-            skip = to_rgb(out, to_rgb_stylespace[i // 2 + 1].float() if is_stylespace else latent[:, i + 2], skip, is_stylespace=is_stylespace)
+            skip = to_rgb(out, latent[:, i + 2], skip, is_stylespace=False)
             
             if early_stop is not None and skip.size(-1) == early_stop:
                 break
