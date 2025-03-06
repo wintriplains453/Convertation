@@ -36,7 +36,7 @@ class FSEFull(nn.Module):
         self.inverter_pth = inverter_pth
 
         self.encoder = self.set_encoder()
-        self.decoder = Generator(self.opts.stylegan_size, 512, 8)
+        self.decoder = Generator(self.opts.stylegan_size, 512)
         self.latent_avg = None
 
         self.pool = torch.nn.AdaptiveAvgPool2d((256, 256))
