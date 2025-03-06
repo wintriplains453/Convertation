@@ -76,29 +76,21 @@ class FSEFull(nn.Module):
         feat_editor = psp_encoders.ContentLayerDeepFast(6, 1024, 512)
         return feat_editor  # trainable part
     
-    def forward(self, x, return_latents=False, n_iter=1e5):
+    def forward(self, x, return_latents=False):
         x = F.interpolate(x, size=(256, 256), mode="bilinear", align_corners=False)
 
         with torch.no_grad():
             w_recon, predicted_feat = self.inverter.fs_backbone(x)
             w_recon = w_recon + self.latent_avg
                     
-            _, w_feat = self.decoder(
-                w_recon,
-                return_features=True
-            )
+            _, w_feat = self.decoder(w_recon)
 
             fused_feat = self.inverter.fuser(torch.cat([predicted_feat, w_feat], dim=1))
             delta = torch.zeros_like(fused_feat)  # inversion case
 
         edited_feat = self.encoder(torch.cat([fused_feat, delta], dim=1))
-        feats = [None] * 9 + [edited_feat] + [None] * (17 - 9)
 
-        images, _ = self.decoder(
-            w_recon,
-            new_features=feats,
-            feature_scale=min(1.0, 0.0001 * n_iter)
-        )
+        images, _ = self.decoder(w_recon, new_feature=edited_feat)
 
         if return_latents:
             if not self.encoder.training:

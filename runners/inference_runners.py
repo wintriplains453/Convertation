@@ -119,7 +119,6 @@ class FSEInferenceRunner(BaseInferenceRunner):
     def _run_editing_on_batch(self, method_res_batch, editing_name, editing_degrees, mask=None):
         orig_latents = method_res_batch["latents"]
         edited_images = []
-        n_iter = 1e5
 
         for i, latent in enumerate(orig_latents):
             edited_latents = self.get_edited_latent(
@@ -143,15 +142,8 @@ class FSEInferenceRunner(BaseInferenceRunner):
             w_e4e = w_e4e.repeat(len(editing_degrees), 1, 1)  # bs = len(editing_degrees)
             w_latent = latent.unsqueeze(0).repeat(len(editing_degrees), 1, 1)
 
-            e4e_inv, fs_x = self.method.decoder(
-                w_e4e,
-                return_features=True
-            )
-
-            e4e_edit, fs_y = self.method.decoder(
-                edited_w_e4e[0],
-                return_features=True
-            )
+            e4e_inv, fs_x = self.method.decoder(w_e4e)
+            e4e_edit, fs_y = self.method.decoder(edited_w_e4e[0])
 
             delta = fs_x - fs_y
 
@@ -165,13 +157,8 @@ class FSEInferenceRunner(BaseInferenceRunner):
 
 
             edited_feat = self.method.encoder(torch.cat([fused_feat, delta], dim=1))  # encoder == feature editor
-            edit_features = [None] * 9 + [edited_feat] + [None] * (17 - 9)
 
-            image_edits, _ = self.method.decoder(
-                edited_latents[0],
-                new_features=edit_features,
-                feature_scale=min(1.0, 0.0001 * n_iter)
-            )
+            image_edits, _ = self.method.decoder(edited_latents[0], new_feature=edited_feat)
 
             edited_images.append(image_edits)
         edited_images = torch.stack(edited_images)

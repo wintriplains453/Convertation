@@ -474,19 +474,12 @@ class Generator(nn.Module):
     def forward(
         self,
         latent,
-        return_features=False,
-        new_features=None,
-        feature_scale=1.0,
+        new_feature=None
     ):
 
         noise = [
             getattr(self.noises, f"noise_{i}") for i in range(self.num_layers)
         ]
-
-        def insert_feature(x, layer_idx):
-            if new_features is not None and new_features[layer_idx] is not None:
-                x = (1 - feature_scale) * x + feature_scale * new_features[layer_idx].type_as(x)
-            return x
 
         out = self.input(latent)
         out = self.conv1(out, latent[:, 0], noise=noise[0], is_stylespace=False)
@@ -498,21 +491,19 @@ class Generator(nn.Module):
         for conv1, conv2, noise1, noise2, to_rgb in zip(
             self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):
-            out = insert_feature(out, i)
+            if new_feature is not None and i == 9:
+                out = new_feature
             out = conv1(out, latent[:, i], noise=noise1, is_stylespace=False)
-
-            out = insert_feature(out, i + 1)
             out = conv2(out, latent[:, i + 1], noise=noise2, is_stylespace=False)
 
             skip = to_rgb(out, latent[:, i + 2], skip, is_stylespace=False)
             
-            if return_features and skip.size(-1) == 64:
+            if new_feature is None and skip.size(-1) == 64:
                 break
 
             i += 2
 
         return skip, out
-
 
 class ConvLayer(nn.Sequential):
     def __init__(
