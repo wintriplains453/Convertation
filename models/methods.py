@@ -90,7 +90,7 @@ class FSEFull(nn.Module):
 
         edited_feat = self.encoder(torch.cat([fused_feat, delta], dim=1))
 
-        images, _ = self.decoder(w_recon, new_feature=edited_feat)
+        images = self.decoder(w_recon, new_feature=edited_feat)
 
         if return_latents:
             if not self.encoder.training:

@@ -158,7 +158,7 @@ class FSEInferenceRunner(BaseInferenceRunner):
 
             edited_feat = self.method.encoder(torch.cat([fused_feat, delta], dim=1))  # encoder == feature editor
 
-            image_edits, _ = self.method.decoder(edited_latents[0], new_feature=edited_feat)
+            image_edits = self.method.decoder(edited_latents[0], new_feature=edited_feat)
 
             edited_images.append(image_edits)
         edited_images = torch.stack(edited_images)

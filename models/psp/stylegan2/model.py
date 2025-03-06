@@ -352,36 +352,56 @@ class Generator(nn.Module):
 
             in_channel = out_channel
 
-    def forward(
-        self,
-        latent,
-        new_feature=None
-    ):
-
-        noise = [
-            getattr(self.noises, f"noise_{i}") for i in range(self.num_layers)
-        ]
-
+    def forward_no_feature(self, latent):
+        """
+        Forward pass when new_feature is NOT provided.
+        """
+        noise = [getattr(self.noises, f"noise_{i}") for i in range(self.num_layers)]
         out = self.input(latent)
         out = self.conv1(out, latent[:, 0], noise=noise[0])
-
         skip = self.to_rgb1(out, latent[:, 1])
-        
 
         i = 1
         for conv1, conv2, noise1, noise2, to_rgb in zip(
             self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):
-            if new_feature is not None and i == 9:
-                out = new_feature
             out = conv1(out, latent[:, i], noise=noise1)
             out = conv2(out, latent[:, i + 1], noise=noise2)
-
             skip = to_rgb(out, latent[:, i + 2], skip)
-            
-            if new_feature is None and skip.size(-1) == 64:
+            if skip.size(-1) == 64:
                 break
-
             i += 2
 
         return skip, out
+
+    def forward_with_feature(self, latent, new_feature):
+        """
+        Forward pass when new_feature is provided.
+        """
+        noise = [getattr(self.noises, f"noise_{i}") for i in range(self.num_layers)]
+
+        out = self.input(latent)
+        out = self.conv1(out, latent[:, 0], noise=noise[0])
+        skip = self.to_rgb1(out, latent[:, 1])
+
+        i = 1
+        for conv1, conv2, noise1, noise2, to_rgb in zip(
+            self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
+        ):
+            if i == 9:
+                out = new_feature
+            out = conv1(out, latent[:, i], noise=noise1)
+            out = conv2(out, latent[:, i + 1], noise=noise2)
+            skip = to_rgb(out, latent[:, i + 2], skip)
+            i += 2
+
+        return skip
+
+    def forward(self, latent, new_feature=None):
+        """
+        Main forward method. Dispatches to the sub-forward depending on `new_feature`.
+        """
+        if new_feature is None:
+            return self.forward_no_feature(latent)
+        else:
+            return self.forward_with_feature(latent, new_feature)
