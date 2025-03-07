@@ -5,12 +5,12 @@ import torch
 from models.psp.stylegan2.model import Generator
 from modified.onnx_module.utils import opts
 from utils.model_utils import toogle_grad
-from modified.onnx_module import inverter
+from modified.onnx_module import encoder, fuser, decoder_without_new_feature, inverter
 from modified.onnx_module.utils import export_and_validate
 
 
 DIR_PATH = Path(__file__).parent.resolve()
-MODEL_PATH = DIR_PATH / 'onnx_models/decoder_without_new_feature.onnx'
+MODEL_PATH = DIR_PATH / 'onnx_models/decoder_with_new_feature.onnx'
 
 
 def init_model():
@@ -25,21 +25,26 @@ def init_model():
 def pt_output(dummy_input=None):
     torch_model = init_model()
     if dummy_input is None:
-        dummy_input, _ = inverter.pt_output()  # w_recon_pt, predicted_feat_pt
+        dummy_input = encoder.pt_output()
     with torch.no_grad():
-        image, feature = torch_model(dummy_input)
-    return image, feature
+        image = torch_model(dummy_input)
+    return image
 
 
 if __name__ == "__main__":
     torch_model = init_model()
-    w_recon_pt, predicted_feat_pt = inverter.pt_output()
+    w_recon, predicted_feat = inverter.pt_output()
+    _, w_feat = decoder_without_new_feature.pt_output(w_recon)
+    fused_feat = fuser.pt_output(torch.cat([predicted_feat, w_feat], dim=1))
+    delta = torch.zeros_like(fused_feat)
+    edited_feat = encoder.pt_output(torch.cat([fused_feat, delta], dim=1))
 
-    output_names = ['image', 'feature']
+    input_names = ['latent', 'new_feature']
+    output_names = ['image']
 
     export_and_validate(
         model=torch_model,
-        dummy_input=(w_recon_pt,),
+        dummy_input=(w_recon, edited_feat),
         output_onnx_path=MODEL_PATH,
         output_names=output_names,
         skip_export=False,

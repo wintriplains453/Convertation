@@ -9,13 +9,15 @@ from modified import fse_full
 
 
 def prepare_np(x):
-    return (np.transpose(x.reshape(3, 256, 256), (1, 2, 0)) + 1) / 2
+    return (np.transpose(x[0], (1, 2, 0)) + 1) / 2
 
 image_pth = str(Path(__file__).parent / 'tests/data/smith_aligned.jpg')
 
-r = fse_full.forward(preprocess_image(image_pth))
-plt.imshow(prepare_np(r))
-plt.savefig('np.png')
+output = fse_full.forward(preprocess_image(image_pth))
+for o in output:
+    print(o.shape)
+plt.imshow(prepare_np(output[0]))
+plt.savefig('np_fse_full.png')
 
 
 
