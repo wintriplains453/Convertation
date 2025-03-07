@@ -22,12 +22,20 @@ def init_model():
     return decoder
 
 
+def pt_output(dummy_input=None):
+    torch_model = init_model()
+    if dummy_input is None:
+        dummy_input = inverter.pt_output()
+    with torch.no_grad():
+        image, feature = torch_model(dummy_input[0])  # w_recon_pt, predicted_feat_pt
+    return image, feature
+
+
 if __name__ == "__main__":
     torch_model = init_model()
     w_recon_pt, predicted_feat_pt = inverter.pt_output()
 
     output_names = ['image', 'feature']
-    print("w_recon_pt shape:", w_recon_pt.shape)
 
     export_and_validate(
         model=torch_model,
