@@ -24,6 +24,19 @@ class Inverter(nn.Module):
         self.fs_backbone = FSLikeBackbone(opts=opts, n_styles=n_styles)
         self.fuser = ContentLayerDeepFast(6, 1024, 512)
 
+class AdaptiveAvgPool2dCustom(nn.Module):
+    def __init__(self, output_size=(3,3)):
+        super().__init__()
+        self.output_size = output_size
+    def forward(self, x):
+        H, W = x.shape[-2], x.shape[-1]
+        outH, outW = self.output_size
+        stride_h = math.floor(H / outH)
+        stride_w = math.floor(W / outW)
+        kernel_h = H - (outH - 1) * stride_h
+        kernel_w = W - (outW - 1) * stride_w
+        return F.avg_pool2d(x, kernel_size=(kernel_h, kernel_w), stride=(stride_h, stride_w))
+
 
 class FSLikeBackbone(nn.Module):
     def __init__(self, n_styles=18, opts=None):
@@ -55,7 +68,7 @@ class FSLikeBackbone(nn.Module):
             nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         )
 
-        self.avg_pool = nn.AdaptiveAvgPool2d((3, 3))
+        self.avg_pool = AdaptiveAvgPool2dCustom((3, 3))
 
         self.styles = nn.ModuleList()
         for i in range(n_styles):
