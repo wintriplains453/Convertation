@@ -84,7 +84,8 @@ def export_and_validate(
     to_numpy_fn=lambda x: x.detach().cpu().numpy(),
     rtol=1e-3,
     atol=1e-5,
-    skip_export=False
+    skip_export=False,
+    opset_version=11,
 ):
     """
     High-level pipeline to:
@@ -101,7 +102,8 @@ def export_and_validate(
             model,
             dummy_input,
             output_onnx_path,
-            output_names=output_names
+            output_names=output_names,
+            opset_version=opset_version,
         )
 
     # 2) PyTorch inference
