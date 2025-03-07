@@ -18,6 +18,7 @@ opts = Namespace(
     stylegan_size=1024,
     arcface_model_path=str(MODELS_PATH / 'iresnet50-7f187506.pth'),
     stylegan_weights=str(MODELS_PATH / 'stylegan2-ffhq-config-f.pt'),
+    e4e_path=str(MODELS_PATH / 'e4e_ffhq_encode.pt'),
 )
 
 

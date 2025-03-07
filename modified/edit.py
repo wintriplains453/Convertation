@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from modified.preprocess import preprocess_image
-from modified import fse_full
+from modified import fse_inference_runner
 
 
 
@@ -13,11 +13,9 @@ def prepare_np(x):
 
 image_pth = str(Path(__file__).parent / 'tests/data/smith_aligned.jpg')
 
-output = fse_full.forward(preprocess_image(image_pth))
-for o in output:
-    print(o.shape)
-plt.imshow(prepare_np(output[0]))
-plt.savefig('np_fse_full.png')
+output = fse_inference_runner.run_on_batch(preprocess_image(image_pth))
+# plt.imshow(prepare_np(output[0]))
+# plt.savefig('np_run_on_batch.png')
 
 
 

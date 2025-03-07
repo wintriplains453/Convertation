@@ -3,7 +3,7 @@ import numpy as np
 from modified.onnx_module.utils import run_onnx, ONNX_MODELS_PATH
 
 
-def forward(x, return_latents=False):
+def forward(x):
 
     x = run_onnx(ONNX_MODELS_PATH / 'interpolate.onnx', (x,))
     x = x[0]
