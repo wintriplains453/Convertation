@@ -26,11 +26,34 @@ def run_on_batch(inputs):
 
     return images, result_batch
 
+
 def run_editing_on_batch(method_res_batch, editing_name, editing_degree):
     latent = method_res_batch['latents']
-    edited_latents = get_edited_latent(
+    w_e4e = method_res_batch['w_e4e']
+    fused_feat = method_res_batch['fused_feat']
+
+    edited_latent = get_edited_latent(
         latent,
         editing_name,
         editing_degree
     )
-    return edited_latents
+
+    edited_w_e4e = get_edited_latent(
+        w_e4e,
+        editing_name,
+        editing_degree
+    )
+    e4e_inv, fs_x = run_onnx(ONNX_MODELS_PATH / 'decoder_without_new_feature.onnx', (w_e4e,))
+    e4e_edit, fs_y = run_onnx(ONNX_MODELS_PATH / 'decoder_without_new_feature.onnx', (edited_w_e4e,))
+    delta = fs_x - fs_y
+
+    edited_feat = run_onnx(
+        ONNX_MODELS_PATH / 'encoder.onnx',
+        (np.concatenate((fused_feat, delta), axis=1),)
+    )
+    edited_feat = edited_feat[0]
+
+    image_edit = run_onnx(ONNX_MODELS_PATH / 'decoder_with_new_feature.onnx', (edited_latent, edited_feat))
+    image_edit = image_edit[0]
+
+    return image_edit

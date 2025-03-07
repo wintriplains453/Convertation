@@ -5,7 +5,7 @@ from modified.onnx_module.utils import run_onnx
 
 
 
-def get_edited_latent(original_latent: np.ndarray, editing_name: str, editing_degree: float):
+def get_edited_latent(original_latent: np.ndarray, editing_name: str, editing_degree: float) -> np.ndarray:
     editing_degree = np.array([editing_degree], dtype=np.float32)
 
     if editing_name in interfacegan_directions_onnx:
