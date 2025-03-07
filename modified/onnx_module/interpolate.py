@@ -39,8 +39,8 @@ if __name__ == '__main__':
 
     export_and_validate(
         model=model,
-        dummy_input=dummy_input,
+        dummy_input=(dummy_input,),
         output_onnx_path=MODEL_PATH,
         output_names=output_names,
-        skip_export=True
+        skip_export=True,
     )

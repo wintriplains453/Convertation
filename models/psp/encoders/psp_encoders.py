@@ -68,7 +68,8 @@ class FSLikeBackbone(nn.Module):
             nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         )
 
-        self.avg_pool = AdaptiveAvgPool2dCustom((3, 3))
+        # self.avg_pool = AdaptiveAvgPool2dCustom((3, 3))
+        self.avg_pool = nn.AdaptiveAvgPool2d((3, 3))
 
         self.styles = nn.ModuleList()
         for i in range(n_styles):

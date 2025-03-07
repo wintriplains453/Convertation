@@ -42,8 +42,8 @@ if __name__ == "__main__":
 
     export_and_validate(
         model=torch_model,
-        dummy_input=input_pt,
+        dummy_input=(input_pt,),
         output_onnx_path=MODEL_PATH,
         output_names=output_names,
-        skip_export=False
+        skip_export=False,
     )

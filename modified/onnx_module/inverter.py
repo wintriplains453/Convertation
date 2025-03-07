@@ -55,8 +55,20 @@ if __name__ == "__main__":
 
     export_and_validate(
         model=torch_model,
-        dummy_input=dummy_input,
+        dummy_input=(dummy_input,),
         output_onnx_path=MODEL_PATH,
         output_names=output_names,
-        skip_export=True
+        skip_export=True,
     )
+
+# ONNX export was performed in models/psp/encoders/psp_encoders.py by:  self.avg_pool = AdaptiveAvgPool2dCustom((3, 3))
+# Pytorch is launched in models/psp/encoders/psp_encoders.py by:  self.avg_pool = nn.AdaptiveAvgPool2d((3, 3))
+# Mismatched elements: 8834 / 9216 (95.9%)
+# Max absolute difference: 0.07346225
+# Max relative difference: 18.75668
+#  x: array([[[ 1.429832, -0.318392, -1.034901, ..., -2.551268,  2.810783,
+#          -0.278764],
+#         [-0.772323,  2.23823 ,  0.678995, ..., -0.544392, -0.148692,...
+#  y: array([[[ 1.419555, -0.327271, -1.022342, ..., -2.541709,  2.802806,
+#          -0.274425],
+#         [-0.790261,  2.233334,  0.68954 , ..., -0.516931, -0.131541,...

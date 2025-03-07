@@ -1,6 +1,6 @@
 from pathlib import Path
 from argparse import Namespace
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import onnxruntime as ort
@@ -23,9 +23,10 @@ opts = Namespace(
 
 def export_to_onnx(
     model: nn.Module,
-    dummy_input: torch.Tensor,
+    dummy_input: tuple[torch.Tensor, ...],
     output_onnx_path: Union[str, Path],
     output_names: list[str],
+    input_names: Optional[list[str]] = None,
     opset_version: int = 11,
     verbose: bool = False
 ):
@@ -39,13 +40,14 @@ def export_to_onnx(
         export_params=True,
         opset_version=opset_version,
         do_constant_folding=True,
+        input_names=input_names,
         output_names=output_names,
         verbose=verbose
     )
 
 def run_onnx(
     onnx_model_path: Union[str, Path],
-    input_data: np.ndarray
+    input_data: tuple[np.ndarray, ...]
 ) -> list[np.ndarray]:
     """
     Runs inference on the given ONNX model for one (or more) inputs.
@@ -53,7 +55,10 @@ def run_onnx(
     """
     session = ort.InferenceSession(str(onnx_model_path))
     # Here we assume a single input; if multiple inputs are needed, adapt accordingly
-    ort_inputs = {session.get_inputs()[0].name: input_data}
+    ort_inputs = {
+        session.get_inputs()[i].name: i_data
+        for i, i_data in enumerate(input_data)
+    }
     ort_outputs = session.run(None, ort_inputs)
     return ort_outputs
 
@@ -78,9 +83,10 @@ def compare_tensors(
 
 def export_and_validate(
     model: nn.Module,
-    dummy_input: torch.Tensor,
+    dummy_input: tuple[torch.Tensor, ...],
     output_onnx_path: Union[str, Path],
     output_names: list[str],
+    input_names: Optional[list[str]] = None,
     to_numpy_fn=lambda x: x.detach().cpu().numpy(),
     rtol=1e-3,
     atol=1e-5,
@@ -103,19 +109,20 @@ def export_and_validate(
             dummy_input,
             output_onnx_path,
             output_names=output_names,
+            input_names=input_names,
             opset_version=opset_version,
         )
 
     # 2) PyTorch inference
     with torch.no_grad():
-        pt_outputs = model(dummy_input)
+        pt_outputs = model(*dummy_input)
         # If model outputs a single tensor, wrap it in a tuple for uniformity
         if not isinstance(pt_outputs, (tuple, list)):
             pt_outputs = [pt_outputs]
         pt_outputs_np = [to_numpy_fn(o) for o in pt_outputs]
 
     # 3) ONNX inference
-    onnx_outputs = run_onnx(output_onnx_path, dummy_input.cpu().numpy())
+    onnx_outputs = run_onnx(output_onnx_path, tuple(i.cpu().numpy() for i in dummy_input))
 
     # 4) Compare
     compare_tensors(pt_outputs_np, onnx_outputs, output_names, rtol, atol)

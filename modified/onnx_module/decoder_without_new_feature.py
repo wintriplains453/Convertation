@@ -10,7 +10,7 @@ from modified.onnx_module.utils import export_and_validate
 
 
 DIR_PATH = Path(__file__).parent.resolve()
-MODEL_PATH = DIR_PATH / 'onnx_models/decoder_without_new_feature_onnx.onnx'
+MODEL_PATH = DIR_PATH / 'onnx_models/decoder_with_new_feature.onnx'
 
 
 def init_model():
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     export_and_validate(
         model=torch_model,
-        dummy_input=w_recon_pt,
+        dummy_input=(w_recon_pt,),
         output_onnx_path=MODEL_PATH,
         output_names=output_names,
         skip_export=False,
