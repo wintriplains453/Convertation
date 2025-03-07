@@ -23,6 +23,11 @@ class Interpolate(nn.Module):
         )
         return x
 
+
+def init_model():
+    return Interpolate()
+
+
 def pt_output():
     torch_model = Interpolate()
     dummy_input = torch.randn(1, 3, 1024, 1024)
@@ -32,7 +37,7 @@ def pt_output():
 
 
 if __name__ == '__main__':
-    model = Interpolate()
+    model = init_model()
     dummy_input = torch.randn(1, 3, 1024, 1024)
 
     output_names = ['output']

@@ -5,11 +5,11 @@ from modified.fse_full import forward as fse_full
 from modified.latent_editor import get_edited_latent
 
 
-def run_on_batch(inputs):
+def run_on_batch(input):
 
-    images, w_recon, fused_feat, predicted_feat = fse_full(inputs)
+    image, w_recon, fused_feat, predicted_feat = fse_full(input)
 
-    x = run_onnx(ONNX_MODELS_PATH / 'interpolate.onnx', (inputs,))
+    x = run_onnx(ONNX_MODELS_PATH / 'interpolate.onnx', (input,))
     x = x[0]
 
     w_e4e = run_onnx(ONNX_MODELS_PATH / 'e4e_encoder.onnx', (x,))
@@ -21,17 +21,13 @@ def run_on_batch(inputs):
         'fused_feat': fused_feat,
         'predicted_feat': predicted_feat,
         'w_e4e': w_e4e,
-        'inputs': inputs
+        'input': input
     }
 
-    return images, result_batch
+    return image, result_batch
 
 
-def run_editing_on_batch(method_res_batch, editing_name, editing_degree):
-    latent = method_res_batch['latents']
-    w_e4e = method_res_batch['w_e4e']
-    fused_feat = method_res_batch['fused_feat']
-
+def run_editing_core(latent, w_e4e, fused_feat, editing_name, editing_degree):
     edited_latent = get_edited_latent(
         latent,
         editing_name,
@@ -57,3 +53,14 @@ def run_editing_on_batch(method_res_batch, editing_name, editing_degree):
     image_edit = image_edit[0]
 
     return image_edit
+
+
+def run_editing_on_batch(method_res_batch, editing_name, editing_degree):
+    latent = method_res_batch['latents']
+    w_e4e = method_res_batch['w_e4e']
+    fused_feat = method_res_batch['fused_feat']
+    return run_editing_core(latent, w_e4e, fused_feat, editing_name, editing_degree)
+
+
+def run_pre_editor(x):
+    return run_onnx(ONNX_MODELS_PATH / 'pre_editor.onnx', (x,))

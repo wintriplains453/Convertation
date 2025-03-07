@@ -26,10 +26,10 @@ def forward(x):
     )
     edited_feat = edited_feat[0]
 
-    images = run_onnx(
+    image = run_onnx(
         ONNX_MODELS_PATH / 'decoder_with_new_feature.onnx',
         (w_recon, edited_feat)
     )
-    images = images[0]
+    image = image[0]
 
-    return images, w_recon, fused_feat, predicted_feat
+    return image, w_recon, fused_feat, predicted_feat

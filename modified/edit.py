@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import numpy as np
@@ -32,13 +33,30 @@ def edit(
         aligned_image_pth = ...
         raise NotImplementedError
 
+    start = time.time()
     orig_img = preprocess_image(aligned_image_pth)
-    inv_images, inversion_results = fse_inference_runner.run_on_batch(orig_img)
-    edited_image = fse_inference_runner.run_editing_on_batch(
-        method_res_batch=inversion_results,
+    print('preprocess_image:', time.time() - start, 's')
+
+    # start = time.time()
+    # inv_images, inversion_results = fse_inference_runner.run_on_batch(orig_img)
+    # edited_image = fse_inference_runner.run_editing_on_batch(
+    #     method_res_batch=inversion_results,
+    #     editing_name=editing_name,
+    #     editing_degree=edited_power,
+    # )
+    # print('separate onnx pre editing files:', time.time() - start, 's')  # 10.74s
+
+    start = time.time()
+    image, w_recon, w_e4e, fused_feat = fse_inference_runner.run_pre_editor(orig_img)
+    edited_image = fse_inference_runner.run_editing_core(
+        latent=w_recon,
+        w_e4e=w_e4e,
+        fused_feat=fused_feat,
         editing_name=editing_name,
         editing_degree=edited_power,
     )
+    print('combined onnx pre editing files:', time.time() - start, 's') # 8.62
+
     return edited_image
 
 
