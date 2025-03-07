@@ -9,6 +9,7 @@ import torch.nn as nn
 
 
 MODELS_PATH = (Path(__file__).parent.parent.parent / 'pretrained_models').resolve()
+EDITING_DIRECTIONS_PATH = (Path(__file__).parent.parent.parent / 'editings').resolve()
 ONNX_MODELS_PATH = (Path(__file__).parent / 'onnx_models').resolve()
 
 
