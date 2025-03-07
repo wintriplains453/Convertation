@@ -58,5 +58,6 @@ if __name__ == "__main__":
         dummy_input=(dummy_input,),
         output_onnx_path=MODEL_PATH,
         output_names=output_names,
-        skip_export=False
+        skip_export=False,
+        dynamo=True,
     )

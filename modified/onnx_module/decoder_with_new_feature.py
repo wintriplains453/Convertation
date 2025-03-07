@@ -49,5 +49,6 @@ if __name__ == "__main__":
         output_names=output_names,
         skip_export=False,
         atol=1e-5,
-        opset_version=10
+        opset_version=10,
+        dynamo=True,
     )

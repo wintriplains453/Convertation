@@ -30,12 +30,13 @@ def export_to_onnx(
     output_names: list[str],
     input_names: Optional[list[str]] = None,
     opset_version: int = 11,
+    dynamo: bool = False,
     verbose: bool = False
 ):
     """
     Exports a given PyTorch model to an ONNX file.
     """
-    torch.onnx.export(
+    onnx_program = torch.onnx.export(
         model,
         dummy_input,
         f=str(output_onnx_path),
@@ -44,8 +45,12 @@ def export_to_onnx(
         do_constant_folding=True,
         input_names=input_names,
         output_names=output_names,
+        dynamo=dynamo,
         verbose=verbose
     )
+    if dynamo:
+        onnx_program.optimize()
+        onnx_program.save(output_onnx_path)
 
 def run_onnx(
     onnx_model_path: Union[str, Path],
@@ -93,6 +98,7 @@ def export_and_validate(
     rtol=1e-3,
     atol=1e-5,
     skip_export=False,
+    dynamo=False,
     opset_version=11,
 ):
     """
@@ -112,6 +118,7 @@ def export_and_validate(
             output_onnx_path,
             output_names=output_names,
             input_names=input_names,
+            dynamo=dynamo,
             opset_version=opset_version,
         )
 

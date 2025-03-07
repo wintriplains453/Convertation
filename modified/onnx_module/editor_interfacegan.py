@@ -55,4 +55,5 @@ if __name__ == '__main__':
             input_names=['start_w', 'factor'],
             opset_version=11,
             skip_export=False,
+            dynamo=True,
         )
