@@ -62,11 +62,11 @@ def edit(
 
 output = edit(
     orig_img_pth=image_pth,
-    editing_name='smile',
+    editing_name='styleclip_global_face with hair_face with fire hair_0.1',
     edited_power=2,
     save_pth='',
     align=False
 )
-print('output type:', type(output), 'output shape:', output.shape)
-plt.imshow(prepare_np(output))
-plt.savefig(str(Path(__file__).parent /'np_run_editing_on_batch.png'))
+# print('output type:', type(output), 'output shape:', output.shape)
+# plt.imshow(prepare_np(output))
+# plt.savefig(str(Path(__file__).parent /'np_run_editing_on_batch.png'))
