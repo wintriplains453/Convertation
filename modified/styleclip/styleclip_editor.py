@@ -281,5 +281,4 @@ def get_styleclip_global_edits(
         edit_broadcast = np.broadcast_to(delta, orig.shape)
         out = orig + (1.0 / 1.5) * edit_broadcast
         edited_rgb_list.append(out)
-
     return edited_ss_list, edited_rgb_list

@@ -2,11 +2,10 @@ import time
 from pathlib import Path
 
 import numpy as np
-import matplotlib.pyplot as plt
+from PIL import Image
 
 from modified.preprocess import preprocess_image
 from modified import fse_inference_runner
-
 
 
 def prepare_np(x):
@@ -14,9 +13,9 @@ def prepare_np(x):
     out = (out + 1) / 2
     out[out < 0] = 0
     out[out > 1] = 1
-    return out
+    out = out * 255
+    return Image.fromarray(out.astype("uint8"))
 
-image_pth = str(Path(__file__).parent / 'tests/data/smith_aligned.jpg')
 
 def edit(
     orig_img_pth: str,
@@ -57,16 +56,18 @@ def edit(
     )
     print('combined onnx pre editing files:', time.time() - start, 's') # 8.62
 
+    edited_image = prepare_np(edited_image)
+    edited_image.save(save_pth)
+
     return edited_image
 
 
-output = edit(
-    orig_img_pth=image_pth,
-    editing_name='styleclip_global_face with hair_face with fire hair_0.1',
-    edited_power=2,
-    save_pth='',
-    align=False
-)
-# print('output type:', type(output), 'output shape:', output.shape)
-# plt.imshow(prepare_np(output))
-# plt.savefig(str(Path(__file__).parent /'np_run_editing_on_batch.png'))
+if __name__ == '__main__':
+    image_pth = str(Path(__file__).parent.parent / 'editing_res/scarlet/scarlet_aligned.jpg')
+    output = edit(
+        orig_img_pth=image_pth,
+        editing_name='styleclip_global_face with hair_face with red hair_0.2',
+        edited_power=5,
+        save_pth=str(Path(__file__).parent / 'styleclip.png'),
+        align=False
+    )

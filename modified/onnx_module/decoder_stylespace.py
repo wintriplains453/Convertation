@@ -5,7 +5,8 @@ import torch.nn as nn
 
 from utils.model_utils import get_stylespace_from_w
 from models.psp.stylegan2.model_original import Generator
-from modified.onnx_module.utils import export_and_validate
+from modified.onnx_module.utils import export_and_validate, opts
+from utils.model_utils import toogle_grad
 
 
 DIR_PATH = Path(__file__).parent.resolve()
@@ -22,7 +23,12 @@ class StyleSpaceExtractor(nn.Module):
         return tuple(style_space + to_rgb_stylespaces)
 
 def init_model():
-    return StyleSpaceExtractor(G=Generator(1024, 512, 8))
+    G = Generator(1024, 512, 8)
+    ckpt = torch.load(opts.stylegan_weights, map_location='cpu')
+    G.load_state_dict(ckpt["g_ema"], strict=False)
+    G = G.eval()
+    toogle_grad(G, False)
+    return StyleSpaceExtractor(G=G).eval()
 
 
 def pt_output():

@@ -3,10 +3,9 @@ from pathlib import Path
 import torch
 
 from models.psp.stylegan2.model import Generator
-from modified.onnx_module.utils import opts
+from modified.onnx_module.utils import export_and_validate, opts
 from utils.model_utils import toogle_grad
 from modified.onnx_module import encoder, fuser, decoder_without_new_feature, inverter
-from modified.onnx_module.utils import export_and_validate
 
 
 DIR_PATH = Path(__file__).parent.resolve()
