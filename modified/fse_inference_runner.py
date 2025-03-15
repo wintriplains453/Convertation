@@ -67,7 +67,7 @@ def run_editing_core(latent, w_e4e, fused_feat, editing_name, editing_degree):
     else:
         image_edit = run_onnx(
             ONNX_MODELS_PATH / 'decoder_with_new_feature.onnx',
-            tuple(edited_latents + [edited_feat])
+            tuple([edited_latents] + [edited_feat])
         )
     image_edit = image_edit[0]
 
