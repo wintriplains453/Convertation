@@ -7,6 +7,8 @@ from PIL import Image
 from modified.preprocess import preprocess_image
 from modified import fse_inference_runner
 
+start = time.time()
+
 
 def prepare_np(x):
     out = np.transpose(x[0], (1, 2, 0))
@@ -66,8 +68,9 @@ if __name__ == '__main__':
     image_pth = str(Path(__file__).parent.parent / 'editing_res/scarlet/scarlet_aligned.jpg')
     output = edit(
         orig_img_pth=image_pth,
-        editing_name='styleclip_global_face with hair_face with red hair_0.2',
-        edited_power=5,
+        editing_name='styleclip_global_face with hair_face with black hair_0.2',
+        edited_power=3,
         save_pth=str(Path(__file__).parent / 'styleclip.png'),
         align=False
     )
+print('Total:', time.time() - start, 's')

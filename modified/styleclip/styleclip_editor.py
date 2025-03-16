@@ -15,81 +15,47 @@ TEMPLATES = """a bad photo of a {}.
 a sculpture of a {}.
 a photo of the hard to see {}.
 a low resolution photo of the {}.
-a rendering of a {}.
-graffiti of a {}.
 a bad photo of the {}.
 a cropped photo of the {}.
-a tattoo of a {}.
-the embroidered {}.
 a photo of a hard to see {}.
 a bright photo of a {}.
 a photo of a clean {}.
 a photo of a dirty {}.
 a dark photo of the {}.
-a drawing of a {}.
 a photo of my {}.
-the plastic {}.
 a photo of the cool {}.
 a close-up photo of a {}.
 a black and white photo of the {}.
-a painting of the {}.
-a painting of a {}.
 a pixelated photo of the {}.
-a sculpture of the {}.
 a bright photo of the {}.
 a cropped photo of a {}.
-a plastic {}.
 a photo of the dirty {}.
 a jpeg corrupted photo of a {}.
 a blurry photo of the {}.
 a photo of the {}.
 a good photo of the {}.
-a rendering of the {}.
-a {} in a video game.
 a photo of one {}.
-a doodle of a {}.
 a close-up photo of the {}.
 a photo of a {}.
-the origami {}.
-the {} in a video game.
-a sketch of a {}.
-a doodle of the {}.
-a origami {}.
 a low resolution photo of a {}.
-the toy {}.
-a rendition of the {}.
 a photo of the clean {}.
 a photo of a large {}.
-a rendition of a {}.
 a photo of a nice {}.
 a photo of a weird {}.
 a blurry photo of a {}.
-a cartoon {}.
-art of a {}.
 a sketch of the {}.
-a embroidered {}.
 a pixelated photo of a {}.
-itap of the {}.
 a jpeg corrupted photo of the {}.
 a good photo of a {}.
-a plushie {}.
 a photo of the nice {}.
 a photo of the small {}.
 a photo of the weird {}.
-the cartoon {}.
-art of the {}.
 a drawing of the {}.
 a photo of the large {}.
 a black and white photo of a {}.
-the plushie {}.
 a dark photo of a {}.
-itap of a {}.
-graffiti of the {}.
-a toy {}.
-itap of my {}.
 a photo of a cool {}.
-a photo of a small {}.
-a tattoo of the {}."""
+a photo of a small {}."""
 
 STYLESPACE_DIMENSIONS = [512 for _ in range(15)] + [256, 256, 256] + [128, 128, 128] + [64, 64, 64] + [32, 32]
 
@@ -218,34 +184,14 @@ class StyleCLIPGlobalDirection:
         Each row is the averaged text embedding for one prompt.
         text_prompts has length 2: [target_text, neutral_text].
         """
-        embeddings = []
-        for text_prompt in text_prompts:
-            # 1. Format prompt with each template
-            all_sentences = [
-                t.format(text_prompt) for t in self.text_prompts_templates
-            ]
-
-            # 2. Tokenize -> shape = (num_templates, context_length)
-            tokens = tokenize(all_sentences)  # see Section 3
-            # tokens shape: (79, 77)
-            # 3. Encode -> shape = (num_templates, embed_dim)
-            text_emb = run_onnx(self.clip_onnx_path, (tokens,))
-            text_emb = text_emb[0]
-
-            # 4. Normalize each embedding along the last axis
-            norms = np.linalg.norm(text_emb, axis=-1, keepdims=True)
-            text_emb = text_emb / (norms + 1e-8)
-
-            # 5. Average across templates
-            avg_emb = np.mean(text_emb, axis=0)
-
-            # 6. Normalize the average
-            avg_emb /= (np.linalg.norm(avg_emb) + 1e-8)
-
-            embeddings.append(avg_emb)
-
-        # Stack final shape [2, embed_dim]
-        return np.stack(embeddings, axis=0)
+        all_sentences = (
+            [t.format(text_prompts[0]) for t in self.text_prompts_templates]
+            +
+            [t.format(text_prompts[1]) for t in self.text_prompts_templates]
+        )
+        tokens = tokenize(all_sentences)
+        text_emb = run_onnx(self.clip_onnx_path, (tokens,))
+        return text_emb[0]
 
 
 def get_styleclip_global_edits(

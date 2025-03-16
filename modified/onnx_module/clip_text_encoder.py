@@ -18,7 +18,14 @@ class CLIPTextEncoder(nn.Module):
         self.clip = clip
 
     def forward(self, text_inputs):
-        return self.clip.encode_text(text_inputs)
+        text_embeddings = self.clip.encode_text(text_inputs)
+        text_embeddings /= text_embeddings.norm(dim=-1, keepdim=True)
+        embeddings_group1, embeddings_group2 = torch.chunk(text_embeddings, 2, dim=0)
+        text_embedding1 = embeddings_group1.mean(dim=0)
+        text_embedding1 /= text_embedding1.norm()
+        text_embedding2 = embeddings_group2.mean(dim=0)
+        text_embedding2 /= text_embedding2.norm()
+        return torch.stack([text_embedding1, text_embedding2])
 
 def init_model():
     model, _ = clip.load('ViT-B/32', 'cpu')
@@ -36,7 +43,11 @@ def pt_output(dummy_input=None, context_length=77):
 
 if __name__ == "__main__":
     torch_model = init_model()
-    dummy_input = torch.cat([clip.tokenize(f"a photo of a {c}") for c in TEMPLATES.split('\n')]).to('cpu')
+    dummy_input = torch.cat(
+        [clip.tokenize(t.format('photo')) for t in TEMPLATES.split('\n')]
+        +
+        [clip.tokenize(t.format('picture')) for t in TEMPLATES.split('\n')]
+    ).to('cpu')
     print(dummy_input.shape)
     output_names = ['text_emb']
 
