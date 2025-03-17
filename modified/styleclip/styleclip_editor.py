@@ -1,16 +1,9 @@
-import pickle
-from pathlib import Path
-from typing import Union
-
 import numpy as np
 
 from modified.styleclip.simple_tokenizer import tokenize
 from modified.onnx_module.utils import run_onnx
 from modified.onnx_module.utils import ONNX_MODELS_PATH
 
-
-# TODO move to onnx
-STYLECLIP_GLOBAL_DIR = Path(__file__).parent.resolve()
 
 TEMPLATES = """a bad photo of a {}.
 a photo of the hard to see {}.
@@ -61,42 +54,6 @@ TORGB_INDICES = list(range(1, len(STYLESPACE_DIMENSIONS), 3))
 STYLESPACE_INDICES_WITHOUT_TORGB = [i for i in range(len(STYLESPACE_DIMENSIONS)) if i not in TORGB_INDICES][:11]
 
 
-def features_channels_to_s(s_without_torgb: np.ndarray, s_std: list[np.ndarray]):
-    """
-    Converts a flattened per-channel style delta (s_without_torgb) into a
-    list of NumPy arrays with shape (1, 1, channel_dim, 1, 1), based on
-    STYLESPACE_DIMENSIONS and the standard deviation array s_std.
-
-    Parameters
-    ----------
-    s_without_torgb : np.ndarray
-        1D NumPy array containing style deltas for the channels that
-        are not part of ToRGB layers.
-
-    s_std : np.ndarray
-        1D NumPy array of standard deviations for each StyleSpace index
-        (same length as STYLESPACE_DIMENSIONS).
-
-    Returns
-    -------
-    list of np.ndarray
-    """
-    s = []
-    start_index_features = 0
-    for i, dim in enumerate(STYLESPACE_DIMENSIONS):
-        if i in STYLESPACE_INDICES_WITHOUT_TORGB:
-            end_index_features = start_index_features + dim
-            # Scale by the standard deviations
-            scaled = s_without_torgb[start_index_features:end_index_features] * s_std[i]
-            start_index_features = end_index_features
-        else:
-            scaled = np.zeros(dim, dtype=s_without_torgb.dtype)
-        # Reshape to (1, 1, channel_dim, 1, 1)
-        # scaled = scaled.reshape((1, 1, -1, 1, 1))
-        s.append(scaled)
-    return s
-
-
 def get_styleclip_global_edits(
     start_s: list[np.ndarray],
     factor: float,
@@ -119,15 +76,10 @@ def get_styleclip_global_edits(
     )
     tokens = tokenize(all_sentences)
 
-    delta_s = run_onnx(
+    directions = run_onnx(
         ONNX_MODELS_PATH / 'clip_text_encoder.onnx',
         (tokens, np.array([disentanglement], dtype=np.float32))
     )
-
-    with open(STYLECLIP_GLOBAL_DIR / 'S_mean_std', 'rb') as f:
-        _, s_std = pickle.load(f)
-    directions = features_channels_to_s(delta_s[0], s_std)
-
 
     edits_ss = [directions[i] for i in range(len(directions)) if i not in TORGB_INDICES]
     edits_rgb = [directions[i] for i in range(len(directions)) if i in TORGB_INDICES]
