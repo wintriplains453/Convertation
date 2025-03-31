@@ -31,7 +31,8 @@ def export_to_onnx(
     input_names: Optional[list[str]] = None,
     opset_version: int = 11,
     dynamo: bool = False,
-    verbose: bool = False
+    verbose: bool = False,
+    do_constant_folding: bool = True,
 ):
     """
     Exports a given PyTorch model to an ONNX file.
@@ -42,7 +43,7 @@ def export_to_onnx(
         f=str(output_onnx_path),
         export_params=True,
         opset_version=opset_version,
-        do_constant_folding=True,
+        do_constant_folding=do_constant_folding,
         input_names=input_names,
         output_names=output_names,
         dynamo=dynamo,
@@ -62,6 +63,10 @@ def run_onnx(
     """
     session = ort.InferenceSession(str(onnx_model_path))
     # Here we assume a single input; if multiple inputs are needed, adapt accordingly
+    print('input_data')
+    print(len(input_data))
+    print([i.shape for i in input_data])
+    print(len(session.get_inputs()))
     ort_inputs = {
         session.get_inputs()[i].name: i_data
         for i, i_data in enumerate(input_data)
@@ -100,6 +105,7 @@ def export_and_validate(
     skip_export=False,
     dynamo=False,
     opset_version=11,
+    do_constant_folding=True,
 ):
     """
     High-level pipeline to:
@@ -120,6 +126,7 @@ def export_and_validate(
             input_names=input_names,
             dynamo=dynamo,
             opset_version=opset_version,
+            do_constant_folding=do_constant_folding,
         )
 
     # 2) PyTorch inference

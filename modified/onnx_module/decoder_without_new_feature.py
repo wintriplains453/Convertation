@@ -45,5 +45,5 @@ if __name__ == "__main__":
         skip_export=False,
         atol=1e-5,
         opset_version=10,
-        dynamo=True,
+        dynamo=False,
     )

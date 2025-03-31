@@ -25,10 +25,15 @@ class PreEditor(nn.Module):
     def forward(self, x):
         x = self.interpolate(x)
         w_recon, predicted_feat = self.inverter(x)
+        print('w_recon', w_recon.shape)
         _, w_feat = self.decoder_without_new_feature(w_recon)
+        print('w_feat', w_feat.shape)
         fused_feat = self.fuser(torch.cat([predicted_feat, w_feat], dim=1))
         delta = torch.zeros_like(fused_feat)
+        print('delta', delta.shape)
+        print('fused_feat', fused_feat.shape)
         edited_feat = self.encoder(torch.cat([fused_feat, delta], dim=1))
+        print('edited_feat', edited_feat.shape)
         image = self.decoder_with_new_feature(w_recon, edited_feat)
         w_e4e = self.e4e_encoder(x)
         return image, w_recon, w_e4e, fused_feat
@@ -58,7 +63,9 @@ if __name__ == "__main__":
         output_onnx_path=MODEL_PATH,
         output_names=output_names,
         skip_export=False,
-        dynamo=True,
+        dynamo=False,
+        opset_version=11,
+        do_constant_folding=True,
     )
 
 # AssertionError:

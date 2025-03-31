@@ -2,7 +2,7 @@ from pathlib import Path
 
 import torch
 
-from models.psp.stylegan2.model_stylespace import Generator
+from models.psp.stylegan2.model_stylespace import GeneratorWOFeature
 from modified.onnx_module.utils import opts
 from utils.model_utils import toogle_grad
 from modified.onnx_module.utils import export_and_validate
@@ -13,7 +13,7 @@ MODEL_PATH = DIR_PATH / 'onnx_models/decoder_rgb_without_new_feature.onnx'
 
 
 def init_model():
-    decoder = Generator(opts.stylegan_size, 512, 8)
+    decoder = GeneratorWOFeature(opts.stylegan_size, 512, 8)
     ckpt = torch.load(opts.stylegan_weights, map_location='cpu')
     decoder.load_state_dict(ckpt["g_ema"], strict=False)
     decoder = decoder.eval()
@@ -22,9 +22,8 @@ def init_model():
 
 
 def pt_input():
-    edited_ss_list = [(1, 512), (1, 512), (1, 512), (1, 512), (1, 512), (1, 512), (1, 512), (1, 512), (1, 512),
-                      (1, 512), (1, 256), (1, 256), (1, 128), (1, 128), (1, 64), (1, 64), (1, 32)]
-    edited_rgb_list = [(1, 512), (1, 512), (1, 512), (1, 512), (1, 512), (1, 256), (1, 128), (1, 64), (1, 32)]
+    edited_ss_list = [(1, 512), (1, 512), (1, 512), (1, 512), (1, 512), (1, 512), (1, 512), (1, 512), (1, 512)]
+    edited_rgb_list = [(1, 512), (1, 512), (1, 512), (1, 512), (1, 512)]
 
     edited_ss_list_pt = [torch.randn(*s) for s in edited_ss_list]
     edited_rgb_list_pt = [torch.randn(*s) for s in edited_rgb_list]
@@ -41,7 +40,7 @@ def pt_output(dummy_input=None):
     return image
 
 
-if __name__ == "__main__2":
+if __name__ == "__main__":
     torch_model = init_model()
     dummy_input = pt_input()
 
@@ -55,23 +54,11 @@ if __name__ == "__main__2":
         'style_7',
         'style_8',
         'style_9',
-        'style_10',
-        'style_11',
-        'style_12',
-        'style_13',
-        'style_14',
-        'style_15',
-        'style_16',
-        'style_17',
         'to_rgb_stylespace_1',
         'to_rgb_stylespace_2',
         'to_rgb_stylespace_3',
         'to_rgb_stylespace_4',
         'to_rgb_stylespace_5',
-        'to_rgb_stylespace_6',
-        'to_rgb_stylespace_7',
-        'to_rgb_stylespace_8',
-        'to_rgb_stylespace_9',
     ]
     output_names = ['image', 'feature']
 
@@ -84,7 +71,7 @@ if __name__ == "__main__2":
         skip_export=False,
         atol=1e-5,
         opset_version=10,
-        dynamo=True,
+        dynamo=False,
     )
 
 # Mismatched elements: 853 / 2097152 (0.0407%)
