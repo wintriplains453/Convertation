@@ -1,7 +1,30 @@
 import numpy as np
 
 from modified.onnx_module.utils import run_onnx, ONNX_MODELS_PATH
+from modified.fse_full import forward as fse_full
 from modified.latent_editor import get_edited_latent
+
+
+def run_on_batch(input):
+
+    image, w_recon, fused_feat, predicted_feat = fse_full(input)
+
+    x = run_onnx(ONNX_MODELS_PATH / 'interpolate.onnx', (input,))
+    x = x[0]
+
+    w_e4e = run_onnx(ONNX_MODELS_PATH / 'e4e_encoder.onnx', (x,))
+    w_e4e = w_e4e[0]
+
+
+    result_batch = {
+        'latents': w_recon,
+        'fused_feat': fused_feat,
+        'predicted_feat': predicted_feat,
+        'w_e4e': w_e4e,
+        'input': input
+    }
+
+    return image, result_batch
 
 
 def run_editing_core(latent, w_e4e, fused_feat, editing_name, editing_degree):

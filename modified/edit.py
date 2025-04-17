@@ -25,6 +25,7 @@ def edit(
     edited_power: float,
     save_pth: str,
     align: bool = False,
+    combined_pre_editor: bool = False,
 ):
     save_pth = Path(save_pth)
     aligned_image_pth = orig_img_pth
@@ -48,14 +49,22 @@ def edit(
     # print('separate onnx pre editing files:', time.time() - start, 's')  # 10.74s
 
     start = time.time()
-    image, w_recon, w_e4e, fused_feat = fse_inference_runner.run_pre_editor(orig_img)
-    edited_image = fse_inference_runner.run_editing_core(
-        latent=w_recon,
-        w_e4e=w_e4e,
-        fused_feat=fused_feat,
-        editing_name=editing_name,
-        editing_degree=edited_power,
-    )
+    if combined_pre_editor:
+        image, w_recon, w_e4e, fused_feat = fse_inference_runner.run_pre_editor(orig_img)
+        edited_image = fse_inference_runner.run_editing_core(
+            latent=w_recon,
+            w_e4e=w_e4e,
+            fused_feat=fused_feat,
+            editing_name=editing_name,
+            editing_degree=edited_power,
+        )
+    else:
+        inv_images, inversion_results = fse_inference_runner.run_on_batch(orig_img)
+        edited_image = fse_inference_runner.run_editing_on_batch(
+            method_res_batch=inversion_results,
+            editing_name=editing_name,
+            editing_degree=edited_power,
+        )
     print('combined onnx pre editing files:', time.time() - start, 's') # 8.62
 
     edited_image = prepare_np(edited_image)
