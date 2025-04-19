@@ -7,6 +7,8 @@ from PIL import Image
 from modified.preprocess import preprocess_image
 from modified import fse_inference_runner
 
+start = time.time()
+
 
 def prepare_np(x):
     out = np.transpose(x[0], (1, 2, 0))
@@ -23,6 +25,7 @@ def edit(
     edited_power: float,
     save_pth: str,
     align: bool = False,
+    combined_pre_editor: bool = False,
 ):
     save_pth = Path(save_pth)
     aligned_image_pth = orig_img_pth
@@ -46,14 +49,22 @@ def edit(
     # print('separate onnx pre editing files:', time.time() - start, 's')  # 10.74s
 
     start = time.time()
-    image, w_recon, w_e4e, fused_feat = fse_inference_runner.run_pre_editor(orig_img)
-    edited_image = fse_inference_runner.run_editing_core(
-        latent=w_recon,
-        w_e4e=w_e4e,
-        fused_feat=fused_feat,
-        editing_name=editing_name,
-        editing_degree=edited_power,
-    )
+    if combined_pre_editor:
+        image, w_recon, w_e4e, fused_feat = fse_inference_runner.run_pre_editor(orig_img)
+        edited_image = fse_inference_runner.run_editing_core(
+            latent=w_recon,
+            w_e4e=w_e4e,
+            fused_feat=fused_feat,
+            editing_name=editing_name,
+            editing_degree=edited_power,
+        )
+    else:
+        inv_images, inversion_results = fse_inference_runner.run_on_batch(orig_img)
+        edited_image = fse_inference_runner.run_editing_on_batch(
+            method_res_batch=inversion_results,
+            editing_name=editing_name,
+            editing_degree=edited_power,
+        )
     print('combined onnx pre editing files:', time.time() - start, 's') # 8.62
 
     edited_image = prepare_np(edited_image)
@@ -66,8 +77,9 @@ if __name__ == '__main__':
     image_pth = str(Path(__file__).parent.parent / 'editing_res/scarlet/scarlet_aligned.jpg')
     output = edit(
         orig_img_pth=image_pth,
-        editing_name='styleclip_global_face with hair_face with red hair_0.2',
-        edited_power=5,
+        editing_name='styleclip_global_face with hair_face with black hair_0.2',
+        edited_power=15,
         save_pth=str(Path(__file__).parent / 'styleclip.png'),
         align=False
     )
+print('Total:', time.time() - start, 's')

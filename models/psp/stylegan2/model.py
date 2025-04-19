@@ -87,11 +87,6 @@ class EqualLinear(nn.Module):
 
         return out
 
-    def __repr__(self):
-        return (
-            f"{self.__class__.__name__}({self.weight.shape[1]}, {self.weight.shape[0]})"
-        )
-
 
 class ModulatedConv2d(nn.Module):
     def __init__(
@@ -196,6 +191,112 @@ class ModulatedConv2d(nn.Module):
         return out
 
 
+class ModulatedConv2dStaticBatch1(nn.Module):
+    """
+    A modulated conv layer that:
+      - Stores weight as 5D: (1, out_channel, in_channel, k, k)
+      - Drops the grouping trick (assumes batch=1).
+      - Squeezes the first dimension at runtime.
+      - Uses F.conv2d(groups=1) for the actual convolution.
+    """
+    def __init__(
+        self,
+        in_channel,
+        out_channel,
+        kernel_size,
+        style_dim,
+        demodulate=True,
+        upsample=False,
+        downsample=False,
+        blur_kernel=[1, 3, 3, 1],
+    ):
+        super().__init__()
+
+        self.eps = 1e-8
+        self.kernel_size = kernel_size
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.upsample = upsample
+        self.downsample = downsample
+        self.demodulate = demodulate
+
+        # Set up blur for up/down (StyleGAN approach).
+        if upsample:
+            factor = 2
+            p = (len(blur_kernel) - factor) - (kernel_size - 1)
+            pad0 = (p + 1) // 2 + factor - 1
+            pad1 = p // 2 + 1
+            self.blur = Blur(blur_kernel, pad=(pad0, pad1), upsample_factor=factor)
+        elif downsample:
+            factor = 2
+            p = (len(blur_kernel) - factor) + (kernel_size - 1)
+            pad0 = (p + 1) // 2
+            pad1 = p // 2
+            self.blur = Blur(blur_kernel, pad=(pad0, pad1))
+
+        # Style-based scale factor
+        fan_in = in_channel * (kernel_size ** 2)
+        self.scale = 1 / math.sqrt(fan_in)
+        self.padding = kernel_size // 2
+
+        # Keep the weight in 5D for compatibility with pretrained StyleGAN:
+        # shape (1, out_channel, in_channel, k, k)
+        self.weight = nn.Parameter(
+            torch.randn(1, out_channel, in_channel, kernel_size, kernel_size)
+        )
+
+        self.modulation = EqualLinear(style_dim, in_channel, bias_init=1, lr_mul=1)
+
+    def forward(self, input, style):
+        """
+        input: shape (1, in_channel, H, W)
+        style: shape (1, style_dim)
+        returns: shape (1, out_channel, H_out, W_out)
+        """
+        # For simplicity, we enforce batch=1
+        assert input.shape[0] == 1, "This class only supports batch=1."
+        assert style.shape[0] == 1, "Style batch must also be 1."
+
+        # 1) Get style scale
+        style = self.modulation(style)  # => (1, in_channel)
+        # Reshape to broadcast over (out_channel, in_channel, k, k)
+        # We want shape (in_channel, 1, 1), but let's keep it simpler:
+        style = style.view(self.in_channel, 1, 1)
+
+        # 2) Our stored weight is (1, out_channel, in_channel, k, k),
+        # squeeze out the batch dimension:
+        weight_4d = self.weight[0]  # shape => (out_channel, in_channel, k, k)
+
+        # 3) Multiply the weights by style across the in_channel dimension
+        #    (and also by self.scale).
+        scaled_weight = weight_4d * style  # broadcasts across in_channel
+        scaled_weight = scaled_weight * self.scale
+
+        # 4) Optionally demodulate
+        if self.demodulate:
+            # demod shape => (out_channel,)
+            demod = torch.rsqrt((scaled_weight ** 2).sum(dim=[1, 2, 3]) + 1e-8)
+            scaled_weight = scaled_weight * demod.view(-1, 1, 1, 1)
+
+        # 5) Perform upsample/downsample if needed
+        if self.upsample:
+            # transposed conv
+            print('mod conv input', input.shape)
+            print('mod conv scaled_weight', scaled_weight.shape)
+            transposed_weight = scaled_weight.transpose(0, 1)
+            out = F.conv_transpose2d(input, transposed_weight, stride=2, padding=0)
+            out = self.blur(out)
+        elif self.downsample:
+            # blur first
+            out = self.blur(input)
+            out = F.conv2d(out, scaled_weight, stride=2, padding=0)
+        else:
+            # normal conv
+            out = F.conv2d(input, scaled_weight, padding=self.padding, stride=1)
+
+        return out
+
+
 class NoiseInjection(nn.Module):
     def __init__(self):
         super().__init__()
@@ -236,7 +337,7 @@ class StyledConv(nn.Module):
     ):
         super().__init__()
 
-        self.conv = ModulatedConv2d(
+        self.conv = ModulatedConv2dStaticBatch1(
             in_channel,
             out_channel,
             kernel_size,
@@ -252,6 +353,7 @@ class StyledConv(nn.Module):
 
     def forward(self, input, style, noise=None):
         out = self.conv(input, style)
+        print("355", out.shape)
         out = self.noise(out, noise=noise)
         # out = out + self.bias
         out = self.activate(out)
@@ -266,11 +368,12 @@ class ToRGB(nn.Module):
         if upsample:
             self.upsample = Upsample(blur_kernel)
 
-        self.conv = ModulatedConv2d(in_channel, 3, 1, style_dim, demodulate=False)
+        self.conv = ModulatedConv2dStaticBatch1(in_channel, 3, 1, style_dim, demodulate=False)
         self.bias = nn.Parameter(torch.zeros(1, 3, 1, 1))
 
     def forward(self, input, style, skip=None):
         out = self.conv(input, style)
+        print("375", out.shape)
         out = out + self.bias
 
         if skip is not None:

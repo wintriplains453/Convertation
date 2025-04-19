@@ -58,8 +58,8 @@ if __name__ == "__main__":
         dummy_input=(dummy_input,),
         output_onnx_path=MODEL_PATH,
         output_names=output_names,
-        skip_export=True,
-        dynamo=True,
+        skip_export=False,
+        dynamo=False,
     )
 
 # ONNX export was performed in models/psp/encoders/psp_encoders.py by:  self.avg_pool = AdaptiveAvgPool2dCustom((3, 3))

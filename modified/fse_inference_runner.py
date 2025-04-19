@@ -12,7 +12,7 @@ def run_on_batch(input):
     x = run_onnx(ONNX_MODELS_PATH / 'interpolate.onnx', (input,))
     x = x[0]
 
-    w_e4e = run_onnx(ONNX_MODELS_PATH / 'e4e_encoder.onnx', (x,))
+    w_e4e = run_onnx(ONNX_MODELS_PATH / 'e4e_encoder_compressed.onnx', (x,))
     w_e4e = w_e4e[0]
 
 
@@ -47,7 +47,7 @@ def run_editing_core(latent, w_e4e, fused_feat, editing_name, editing_degree):
     if is_stylespace:
         e4e_edit, fs_y = run_onnx(
             ONNX_MODELS_PATH / 'decoder_rgb_without_new_feature.onnx',
-            tuple(edited_w_e4e[0] + edited_w_e4e[1])
+            tuple(edited_w_e4e[0][:9] + edited_w_e4e[1][:5])
         )
     else:
         e4e_edit, fs_y = run_onnx(ONNX_MODELS_PATH / 'decoder_without_new_feature.onnx', (edited_w_e4e,))

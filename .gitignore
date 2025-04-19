@@ -1,4 +1,5 @@
 pretrained_models/
+modified/onnx_module/onnx_models/
 
 Miniconda3-latest-Linux-x86_64.sh
 
